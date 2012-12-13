@@ -31,7 +31,7 @@
         }
     }  
   
-    //error_reporting(E_ALL ^ (E_NOTICE | E_WARNING));    
+    error_reporting(E_ALL ^ (E_NOTICE | E_WARNING));    
     
     $fp = fopen("importlockmqtt", "w");
     if (! flock($fp, LOCK_EX | LOCK_NB)) { echo "Already running\n"; die; }
