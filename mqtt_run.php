@@ -11,10 +11,6 @@
 
   */
     
-    //require "../input/input_model.php";
-    //require "../feed/feed_model.php";
-    //require "../input/process_model.php";
-
     define('EMONCMS_EXEC', 1);
     declare(ticks = 1);
 
@@ -35,7 +31,7 @@
         }
     }  
   
-    error_reporting(E_ALL ^ (E_NOTICE | E_WARNING));    
+    //error_reporting(E_ALL ^ (E_NOTICE | E_WARNING));    
     
     $fp = fopen("importlockmqtt", "w");
     if (! flock($fp, LOCK_EX | LOCK_NB)) { echo "Already running\n"; die; }
@@ -44,8 +40,15 @@
     
     require "../../settings.php";
     include "../../db.php";
-    require "SAM/php_sam.php";
     db_connect();
+    
+    include "raspberrypi_model.php";
+    include "../user/user_model.php";
+    include "../input/input_model.php";
+    include "../feed/feed_model.php";
+    include "../input/process_model.php";
+
+    require "SAM/php_sam.php";
     
     include "mqtt_model.php";
     mqtt_running();
@@ -152,16 +155,15 @@
             
             if (isset($xml->sensor)) {
 
-                $url = "/emoncms/input/post?apikey=".$apikey."&node=".$mnode."&csv=".$msubs;
-                getcontent("localhost",80,$url);
+                $timenow = intval(time());
+                $wattval = ltrim($xml->ch1->watts,'0');
+                $sensorid = $xml->sensor + 1;
+                if (empty($wattval)) {$wattval = 0;}
+                writetodb($mnode,$sensorid,$wattval,$timenow,$apikey);
 
                 if ($sent_to_remote == true)
                 {
                   if ($ni!=0) $remotedata .= ",";
-                  $td = intval(time() - $start_time);
-                  $wattval = ltrim($xml->ch1->watts,'0');
-                  if (empty($wattval)) {$wattval = 0;}
-                  //writetodb(17,$xml->sensor,$wattval);
                   
                   $remotedata .= '['.$td.','.$mnode.',';
                   for ($i=0; $i<$xml->sensor;$i++) {
@@ -170,30 +172,29 @@
                   $remotedata .= $wattval.']'; $ni++;
                 }
             }
-            
+        }
     }
-}
 
-function writetodb($sensor,$wattval) {
-    $name = "node".$nodeid."_".($i-1);
-    $id = get_input_id($session['userid'],$name);
-    $value = $wattval;
-    $time = $start_time + intval($node[0]);
-    
+function writetodb($nodeid,$sensor,$value,$timenow,$apikey) {
+
+    $userid = get_apikey_write_user($apikey);
+
+    $name = "node".$nodeid."_".($sensor);
+
+    $id = get_input_id($userid,$name);
+
     if ($id==0) {
-        $id = create_input_timevalue($session['userid'],$name,$nodeid,$time,$value);
+        $id = create_input_timevalue($userid,$name,$nodeid,$timenow,$value);
     } else {				
-        set_input_timevalue($id,$time,$value);
+        set_input_timevalue($id,$timenow,$value);
     }
-    $inputs[] = array('id'=>$id,'time'=>$time,'value'=>$value);
-    new_process_inputs($session['userid'],$inputs);
+    $inputs[] = array('id'=>$id,'time'=>$timenow,'value'=>$value);
+    new_process_inputs($userid,$inputs);
 
 }
 
 function getcontent($server, $port, $file)
 {
-    echo "Output content\r\n";
-    $cont = "";
     $ip = gethostbyname($server);
     $fp = fsockopen($ip, $port);
     if (!$fp) {
