@@ -55,7 +55,7 @@
     include "../../db.php";
     db_connect();
     
-    include "raspberrypi_model.php";
+    include "mqtt_model.php";
     include "../user/user_model.php";
     include "../input/input_model.php";
     include "../feed/feed_model.php";
@@ -63,7 +63,6 @@
 
     require "SAM/php_sam.php";
     
-    include "mqtt_model.php";
     mqtt_running();
     
     $settings = mqtt_get();
