@@ -29,7 +29,7 @@
     { 
       $settings = mqtt_get();
       if ($format == 'html') $output['content'] = view("mqtt/mqtt_view.php", array('settings'=>$settings));
-       if ((time()-$settings['running'])<10) 
+       if ((time()-$settings['running'])<30) 
          $output['message'] = array('success',"MQTT interface script is up and running");
        else
          $output['message'] = array('important',"No data has been recieved from MQTT in the last 30s. Check if the MQTT interface script is running, if not you may need to configure cron");
