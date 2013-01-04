@@ -166,10 +166,12 @@
             //getcontent("localhost",80,$url);
             
             if (isset($xml->sensor)) {
-
+                
                 $timenow = intval(time());
                 $wattval = ltrim($xml->ch1->watts,'0');
                 $sensorid = $xml->sensor + 1;
+                
+                echo $sensorid." ".$wattval." ".$timenow.PHP_EOL;
                 if (empty($wattval)) {$wattval = 0;}
                 writetodb($mnode,$sensorid,$wattval,$timenow,$apikey);
 
