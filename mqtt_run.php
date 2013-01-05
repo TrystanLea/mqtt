@@ -65,6 +65,9 @@
     
     mqtt_running();
     
+    $session = array();
+    $session['userid'] = $userid;    
+    
     $settings = mqtt_get();
     $apikey = $settings['apikey'];
     $mhost = $settings['mhost'];
