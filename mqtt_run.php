@@ -65,9 +65,6 @@
     
     mqtt_running();
     
-    $session = array();
-    $session['userid'] = $userid;    
-    
     $settings = mqtt_get();
     $apikey = $settings['apikey'];
     $mhost = $settings['mhost'];
@@ -80,6 +77,10 @@
     $mpass = $settings['mpass'];
     $mfields = $settings['mfields'];
     $mexpression = $settings['mexpression'];
+    
+    $userid = get_apikey_write_user($apikey);
+    $session = array();
+    $session['userid'] = $userid;    
     
     $remotedomain = $settings['remotedomain'];
     $remoteapikey = $settings['remoteapikey'];
@@ -196,6 +197,9 @@ function writetodb($nodeid,$sensor,$value,$timenow,$apikey) {
 
     $userid = get_apikey_write_user($apikey);
 
+    $session = array();
+    $session['userid'] = $userid;    
+    
     $name = "node".$nodeid."_".($sensor);
 
     $id = get_input_id($userid,$name);
