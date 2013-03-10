@@ -11,13 +11,14 @@
  
   */
 
+  global $user;
 ?>
 
 <h2>MQTT</h2>
 
 <div style="width:300px; float:left;">
 <form action="set" method="GET" >
-<p><b>MQTT connected to account: <?php echo get_user_name($settings['userid']); ?></b></p>
+<p><b>MQTT connected to account: <?php echo $user->get_username($settings['userid']); ?></b></p>
 
 
 <p>Host: IP Address / Domain<br><input type="text" name="mhost" value="<?php echo $settings['mhost']; ?>" /></p>

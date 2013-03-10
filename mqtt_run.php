@@ -52,20 +52,29 @@
     }
     
     require "../../settings.php";
-    include "../../db.php";
-    db_connect();
-    
-    include "mqtt_model.php";
-    include "../user/user_model.php";
-    include "../input/input_model.php";
-    include "../feed/feed_model.php";
-    include "../input/process_model.php";
 
+    $mysqli = new mysqli($server,$username,$password,$database);
+
+    require("../user/user_model.php");
+    $user = new User($mysqli,null);
+
+    include "mqtt_model.php";
+    $mqtt = new Mqtt($mysqli);
+
+    require "../feed/feed_model.php"; // 540
+    $feed = new Feed($mysqli);
+
+    require "../input/input_model.php"; // 295
+    $input = new Input($mysqli,$feed);
+
+    require "../input/process_model.php"; // 886
+    $process = new Process($mysqli,$input,$feed);
+    
     require "SAM/php_sam.php";
     
-    mqtt_running();
+    $mqtt->running();
     
-    $settings = mqtt_get();
+    $settings = $mqtt->get();
     $apikey = $settings['apikey'];
     $mhost = $settings['mhost'];
     $mport = $settings['mport'];
@@ -78,7 +87,10 @@
     $mfields = $settings['mfields'];
     $mexpression = $settings['mexpression'];
     
-    $userid = get_apikey_write_user($apikey);
+    $result = $mysqli->query("SELECT id FROM users WHERE apikey_write='$apikey'");
+    $row = $result->fetch_array();
+    $userid = $row['id'];
+
     $session = array();
     $session['userid'] = $userid;    
     
@@ -86,8 +98,13 @@
     $remoteapikey = $settings['remoteapikey'];
     
     $sent_to_remote = false;
-    $result = file_get_contents("http://".$remotedomain."/time/local.json?apikey=".$remoteapikey);
-    if (substr($result,1,1)=='t') {echo "Remote upload enabled - details correct \n"; $sent_to_remote = true; }
+
+    // $result = file_get_contents("http://".$remotedomain."/time/local.json?apikey=".$remoteapikey);
+    // if (substr($result,1,1)=='t') {echo "Remote upload enabled - details correct \n"; $sent_to_remote = true; }
+
+    // New timezone location
+    $result = file_get_contents("http://".$remotedomain."/user/timezone.json?apikey=".$remoteapikey);
+    if ($result) {echo "Remote upload enabled - details correct \n"; $sent_to_remote = true; }
     
     //create a new connection object
     $conn = new SAMConnection();
@@ -117,16 +134,16 @@
         if (time()-$start>10) {
             $start = time();
             
-            $settings = mqtt_get();
+            $settings = $mqtt->get();
             if ($settings['apikey'] !=$apikey) $apikey = $settings['apikey'];
             if ($settings['mhost'] !=$mhost) {$mhost = $settings['mhost']; echo $mhost;}
             
             if ($settings['remotedomain'] !=$remotedomain || $settings['remoteapikey'] !=$remoteapikey)
             { 
-              $result = file_get_contents("http://".$remotedomain."/time/local.json?apikey=".$remoteapikey);
-              if (substr($result,1,1)=='t') {echo "Remote upload enabled - details correct \n"; $sent_to_remote = true; }
+              $result = file_get_contents("http://".$remotedomain."/user/timezone.json?apikey=".$remoteapikey);
+              if ($result) {echo "Remote upload enabled - details correct \n"; $sent_to_remote = true; }
             }
-            mqtt_running();
+            $mqtt->running();
         }
 
         // Forward data to remote emoncms
@@ -195,23 +212,19 @@
 
 function writetodb($nodeid,$sensor,$value,$timenow,$apikey) {
 
-    $userid = get_apikey_write_user($apikey);
-
+    $userid = $user->get_apikey_write_user($apikey);
     $session = array();
-    $session['userid'] = $userid;    
-    
-    $name = "node".$nodeid."_".($sensor);
+    $session['userid'] = $userid;
 
-    $id = get_input_id($userid,$name);
+    $result = $input->get_by_name($userid, $nodeid, $sensor);
 
-    if ($id==0) {
-        $id = create_input_timevalue($userid,$name,$nodeid,$timenow,$value);
+    if (!$result) {
+        $id = $input->create_input($session['userid'], $nodeid, $sensor);
     } else {				
-        set_input_timevalue($id,$timenow,$value);
+        if ($result->record) $input->set_timevalue($result->id,$timenow,$value);
     }
-    $inputs[] = array('id'=>$id,'time'=>$timenow,'value'=>$value);
-    new_process_inputs($userid,$inputs);
 
+    $process->input($time,$timenow,$result->processList);
 }
 
 function getcontent($server, $port, $file)

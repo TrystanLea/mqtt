@@ -11,27 +11,37 @@
  
   */
 
-  function mqtt_get()
+class Mqtt
+{
+  private $mysqli;
+
+  public function __construct($mysqli)
   {
-    $result = db_query("SELECT * FROM mqtt");
-    $row = db_fetch_array($result);
+      $this->mysqli = $mysqli;
+  }
+
+  public function get()
+  {
+    $result = $this->mysqli->query("SELECT * FROM mqtt");
+    $row = $result->fetch_array();
 
     if (!$row)
     {
-      db_query("INSERT INTO mqtt ( userid, apikey, mhost, mport, mnode, mtype, mqos, mtopic, muser, mpass, mexpression, mfields, remotedomain, remoteapikey, remotesend) VALUES ( '0' , '' , '127.0.0.1' , '1883', '18', 'sub', '0', '#', '', '', '', '', 'emoncms.org', 'YOURAPIKEY', 'false');");
-      $result = db_query("SELECT * FROM mqtt");
-      $row = db_fetch_array($result);
+      $this->mysqli->query("INSERT INTO mqtt ( userid, apikey, mhost, mport, mnode, mtype, mqos, mtopic, muser, mpass, mexpression, mfields, remotedomain, remoteapikey, remotesend) VALUES ( '0' , '' , '127.0.0.1' , '1883', '18', 'sub', '0', '#', '', '', '', '', 'emoncms.org', 'YOURAPIKEY', 'false');");
+      $result = $this->mysqli->query("SELECT * FROM mqtt");
+      $row = $result->fetch_array();
     }
     return $row;
   }
 
-  function mqtt_set($userid,$apikey,$mhost,$mport,$mnode,$mtype,$mqos,$mtopic,$muser,$mpass,$mexpression,$mfields,$remotedomain,$remoteapikey,$remotesend)
+  public function set($userid,$apikey,$mhost,$mport,$mnode,$mtype,$mqos,$mtopic,$muser,$mpass,$mexpression,$mfields,$remotedomain,$remoteapikey,$remotesend)
   {
-    db_query("UPDATE mqtt SET `userid` = '$userid', `apikey` = '$apikey', `mhost` = '$mhost' , `mport` = '$mport' , `mnode` = '$mnode' , `mtype` = '$mtype' , `mqos` = '$mqos' , `mtopic` = '$mtopic' , `muser` = '$muser' , `mpass` = '$mpass' ,`mexpression` = '$mexpression' ,`mfields` = '$mfields' ,`remotedomain` = '$remotedomain', `remoteapikey` = '$remoteapikey', `remotesend` = '$remotesend' ");
+    $this->mysqli->query("UPDATE mqtt SET `userid` = '$userid', `apikey` = '$apikey', `mhost` = '$mhost' , `mport` = '$mport' , `mnode` = '$mnode' , `mtype` = '$mtype' , `mqos` = '$mqos' , `mtopic` = '$mtopic' , `muser` = '$muser' , `mpass` = '$mpass' ,`mexpression` = '$mexpression' ,`mfields` = '$mfields' ,`remotedomain` = '$remotedomain', `remoteapikey` = '$remoteapikey', `remotesend` = '$remotesend' ");
   }
 
-  function mqtt_running()
+  public function running()
   { 
     $time = time();
-    db_query("UPDATE mqtt SET `running` = '$time' ");
+    $this->mysqli->query("UPDATE mqtt SET `running` = '$time' ");
   }
+}
